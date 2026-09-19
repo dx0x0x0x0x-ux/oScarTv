@@ -1,16 +1,14 @@
 {
   "name": "oscartv-api",
   "version": "1.0.0",
-  "description": "API Proxy for oScarTv",
+  "description": "API Proxy for oScarTv with TLS Bypass",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "axios": "^1.7.0",
-    "axios-cookiejar-support": "^5.0.0",
     "express": "^4.19.0",
-    "tough-cookie": "^4.1.0"
+    "tls-client": "^1.7.0"
   },
   "engines": {
     "node": ">=18.0.0"
