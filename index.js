@@ -1,17 +1,9 @@
 const express = require('express');
-const { createClient } = require('tls-client');
+const { gotScraping } = require('got-scraping');
 const crypto = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-// إعداد عميل TLS محاكي لهواتف Android
-const client = createClient({
-    clientIdentifier: 'okpth_android_13', // محاكاة بصمة OkHttp الرسمية بـ Android
-    ja3String: '771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49171-49172-156-157-47-53,0-23-65281-10-11-35-16-5-13-18-51-45-43-27-21,29-23-24,0',
-    followRedirects: true,
-    forceHttp1: true
-});
 
 const BASE_URL = "https://104.21.30.103";
 const DEVICE_ID = crypto.randomUUID();
@@ -26,23 +18,35 @@ const HEADERS = {
 
 app.get('/', async (req, res) => {
     try {
-        console.log("1. جاري تنفيذ الاتصال التمهيدي ببصمة TLS الخاصة بـ Android...");
-        
-        // 1. الطلب التمهيدي للحصول على الكوكيز
-        const initResponse = await client.get(`${BASE_URL}/api/v2/home.php?app_version=15`, {
-            headers: HEADERS
+        console.log("1. جاري تنفيذ الطلب التمهيدي وتخطّي حماية TLS...");
+
+        // 1. طلب تمهيدي لتخطي حماية Cloudflare والحصول على الجلسة
+        const response = await gotScraping({
+            url: `${BASE_URL}/api/v2/home.php?app_version=15`,
+            headers: HEADERS,
+            headerGeneratorOptions: {
+                browsers: [{ name: 'chrome', minVersion: 120 }],
+                operatingSystems: ['android'],
+                deviceCategory: 'mobile'
+            }
         });
 
-        console.log("✔ تم اجتياز مصافحة Cloudflare! الكود:", initResponse.status);
+        console.log("✔ تم اجتياز حظر Cloudflare! كود الاستجابة:", response.statusCode);
 
-        // 2. طلب البيانات المباشرة مع المعرف
-        const apiResponse = await client.get(`${BASE_URL}/api/series/?page=1&limit=20&device_id=${DEVICE_ID}`, {
-            headers: HEADERS
+        // 2. طلب البيانات المباشر مع معلمات الجهاز
+        const apiData = await gotScraping({
+            url: `${BASE_URL}/api/series/?page=1&limit=20&device_id=${DEVICE_ID}`,
+            headers: HEADERS,
+            headerGeneratorOptions: {
+                browsers: [{ name: 'chrome', minVersion: 120 }],
+                operatingSystems: ['android'],
+                deviceCategory: 'mobile'
+            }
         });
 
         res.json({
             status: "success",
-            data: apiResponse.body ? JSON.parse(apiResponse.body) : apiResponse.status
+            data: JSON.parse(apiData.body)
         });
 
     } catch (error) {
